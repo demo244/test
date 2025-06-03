@@ -1,0 +1,60 @@
+@ExtendWith(MockitoExtension.class)
+class MemberSecOpsServiceTest {
+
+    @InjectMocks
+    private MemberSecOpsService memberSecOpsService;
+
+    @Mock
+    private WebClient mulesoftWebClient;
+
+    @Mock
+    private WebClient.RequestBodyUriSpec uriSpec;
+
+    @Mock
+    private WebClient.RequestBodySpec bodySpec;
+
+    @Mock
+    private WebClient.RequestHeadersSpec<?> headersSpec;
+
+    @Mock
+    private WebClient.ResponseSpec responseSpec;
+
+    @Mock
+    private CustomLogger journeyLog;
+
+    @Value("${APP_MULESOFT_MSO_RETRY_COUNT:3}")
+    private long retryCount;
+
+    @Value("${APP_MULESOFT_MSO_RETRY_DELAY:1000}")
+    private long retryDelay;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(memberSecOpsService, "memberSecOpsServiceUrl", "http://test-service.com");
+        ReflectionTestUtils.setField(memberSecOpsService, "retryCount", retryCount);
+        ReflectionTestUtils.setField(memberSecOpsService, "retryDelay", retryDelay);
+    }
+
+    @Test
+    void testPostToMemberSecOpsService_success() {
+  
+        ResponseEvent mockEvent = new ResponseEvent();
+        mockEvent.setFrTransactionID("txn123");
+
+        MemberSecOpsResponse mockResponse = new MemberSecOpsResponse();
+
+        when(mulesoftWebClient.post()).thenReturn(uriSpec);
+        when(uriSpec.uri(anyString())).thenReturn(bodySpec);
+        when(bodySpec.body(any(), eq(MemberSecOpsRequest.class))).thenReturn(headersSpec);
+        when(headersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(MemberSecOpsResponse.class)).thenReturn(Mono.just(mockResponse));
+
+   
+        MemberSecOpsResponse response = memberSecOpsService.postToMemberSecOpsService(mockEvent);
+
+
+        assertNotNull(response);
+        assertEquals(mockResponse, response);
+        verify(journeyLog).logEvent(eq("name"), eq("request-handler--callback"), anyMap());
+    }
+}
