@@ -1,28 +1,29 @@
 @Test
-    void testPostToMemberSecOpsService_success() {
-    
-        ResponseEvent event = new ResponseEvent();
-        event.setFrTransactionID("TX123");
-        event.setAricEventId("ARIC456");
-        event.setAricRiskStatus("RISK_OK");
+void testPostToMemberSecOpsService_failure() {
 
-        MemberSecOpsResponse expectedResponse = new MemberSecOpsResponse();
+    ResponseEvent responseEvent = ResponseEvent.builder()
+        .aricEventId("failure-id")
+        .aricResponseTimestamp("2025-02-27T09:06:38.252195Z")
+        .build();
 
-        
-        when(mulesoftWebClient.post()).thenReturn(uriSpec);
-        when(uriSpec.uri(anyString())).thenReturn(bodySpec);
-        when(bodySpec.contentType(MediaType.APPLICATION_JSON)).thenReturn(bodySpec);
-        when(bodySpec.bodyValue(any(MemberSecOpsRequest.class))).thenReturn(headersSpec);
-        when(headersSpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        when(responseSpec.bodyToMono(MemberSecOpsResponse.class)).thenReturn(Mono.just(expectedResponse));
-
-       
-        MemberSecOpsResponse actualResponse = memberSecOpsService.postToMemberSecOpsService(event);
+    mockWebClient();
 
 
-        assertNotNull(actualResponse);
-        assertEquals(expectedResponse, actualResponse);
+    when(responseSpec.onStatus(any(), any()))
+        .thenAnswer(invocation -> {
+            Function<ClientResponse, Mono<? extends Throwable>> errorFunction = invocation.getArgument(1);
+            ClientResponse mockClientResponse = mock(ClientResponse.class);
+            when(mockClientResponse.bodyToMono(String.class)).thenReturn(Mono.just("Simulated error body"));
+            return responseSpec;
+        });
 
-       
-    }
+    when(responseSpec.bodyToMono(MemberSecOpsResponse.class))
+        .thenReturn(Mono.error(new RuntimeException("Simulated WebClient failure")));
+
+
+    RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
+        memberSecOpsService.postToMemberSecOpsService(responseEvent);
+    });
+
+    assertTrue(thrown.getMessage().contains("Simulated WebClient failure"));
+}
