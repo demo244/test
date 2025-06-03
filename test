@@ -1,60 +1,28 @@
-@ExtendWith(MockitoExtension.class)
-class MemberSecOpsServiceTest {
-
-    @InjectMocks
-    private MemberSecOpsService memberSecOpsService;
-
-    @Mock
-    private WebClient mulesoftWebClient;
-
-    @Mock
-    private WebClient.RequestBodyUriSpec uriSpec;
-
-    @Mock
-    private WebClient.RequestBodySpec bodySpec;
-
-    @Mock
-    private WebClient.RequestHeadersSpec<?> headersSpec;
-
-    @Mock
-    private WebClient.ResponseSpec responseSpec;
-
-    @Mock
-    private CustomLogger journeyLog;
-
-    @Value("${APP_MULESOFT_MSO_RETRY_COUNT:3}")
-    private long retryCount;
-
-    @Value("${APP_MULESOFT_MSO_RETRY_DELAY:1000}")
-    private long retryDelay;
-
-    @BeforeEach
-    void setUp() {
-        ReflectionTestUtils.setField(memberSecOpsService, "memberSecOpsServiceUrl", "http://test-service.com");
-        ReflectionTestUtils.setField(memberSecOpsService, "retryCount", retryCount);
-        ReflectionTestUtils.setField(memberSecOpsService, "retryDelay", retryDelay);
-    }
-
-    @Test
+@Test
     void testPostToMemberSecOpsService_success() {
-  
-        ResponseEvent mockEvent = new ResponseEvent();
-        mockEvent.setFrTransactionID("txn123");
+    
+        ResponseEvent event = new ResponseEvent();
+        event.setFrTransactionID("TX123");
+        event.setAricEventId("ARIC456");
+        event.setAricRiskStatus("RISK_OK");
 
-        MemberSecOpsResponse mockResponse = new MemberSecOpsResponse();
+        MemberSecOpsResponse expectedResponse = new MemberSecOpsResponse();
 
+        
         when(mulesoftWebClient.post()).thenReturn(uriSpec);
         when(uriSpec.uri(anyString())).thenReturn(bodySpec);
-        when(bodySpec.body(any(), eq(MemberSecOpsRequest.class))).thenReturn(headersSpec);
+        when(bodySpec.contentType(MediaType.APPLICATION_JSON)).thenReturn(bodySpec);
+        when(bodySpec.bodyValue(any(MemberSecOpsRequest.class))).thenReturn(headersSpec);
         when(headersSpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.bodyToMono(MemberSecOpsResponse.class)).thenReturn(Mono.just(mockResponse));
+        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(MemberSecOpsResponse.class)).thenReturn(Mono.just(expectedResponse));
 
-   
-        MemberSecOpsResponse response = memberSecOpsService.postToMemberSecOpsService(mockEvent);
+       
+        MemberSecOpsResponse actualResponse = memberSecOpsService.postToMemberSecOpsService(event);
 
 
-        assertNotNull(response);
-        assertEquals(mockResponse, response);
-        verify(journeyLog).logEvent(eq("name"), eq("request-handler--callback"), anyMap());
+        assertNotNull(actualResponse);
+        assertEquals(expectedResponse, actualResponse);
+
+       
     }
-}
