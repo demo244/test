@@ -1,29 +1,15 @@
-@Test
-void testPostToMemberSecOpsService_failure() {
-
-    ResponseEvent responseEvent = ResponseEvent.builder()
-        .aricEventId("failure-id")
-        .aricResponseTimestamp("2025-02-27T09:06:38.252195Z")
-        .build();
-
-    mockWebClient();
-
-
-    when(responseSpec.onStatus(any(), any()))
-        .thenAnswer(invocation -> {
-            Function<ClientResponse, Mono<? extends Throwable>> errorFunction = invocation.getArgument(1);
-            ClientResponse mockClientResponse = mock(ClientResponse.class);
-            when(mockClientResponse.bodyToMono(String.class)).thenReturn(Mono.just("Simulated error body"));
-            return responseSpec;
-        });
-
-    when(responseSpec.bodyToMono(MemberSecOpsResponse.class))
-        .thenReturn(Mono.error(new RuntimeException("Simulated WebClient failure")));
-
-
-    RuntimeException thrown = assertThrows(RuntimeException.class, () -> {
-        memberSecOpsService.postToMemberSecOpsService(responseEvent);
-    });
-
-    assertTrue(thrown.getMessage().contains("Simulated WebClient failure"));
-}
+Map<String, Object> requestBody = Map.of(
+    "creation_date", Instant.now().toString(),
+    "digital", Map.of(
+        "digital_session_id", eventMap.get("digital_session_id").toString()
+    ),
+    "event_id", eventMap.get("event_id").toString(),
+    "event_timestamp", eventMap.get("event_timestamp").toString(),
+    "event_type", Constants.DEFAULT_EVENT_TYPE,
+    "msg_type", eventMap.get("msg_type").toString(),
+    "original_event_id", eventMap.get("original_event_id").toString(),
+    "schema_version", Constants.SCHEMA_VERSION,
+    "step_up_decision", eventMap.get("step_up_decision").toString(),
+    "step_up_destination", eventMap.get("step_up_destination").toString(),
+    "tenant_id", Collections.singletonList(Constants.TENANT_ID)
+);
