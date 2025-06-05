@@ -1,15 +1,15 @@
-Map<String, Object> requestBody = Map.of(
-    "creation_date", Instant.now().toString(),
-    "digital", Map.of(
-        "digital_session_id", eventMap.get("digital_session_id").toString()
-    ),
-    "event_id", eventMap.get("event_id").toString(),
-    "event_timestamp", eventMap.get("event_timestamp").toString(),
-    "event_type", Constants.DEFAULT_EVENT_TYPE,
-    "msg_type", eventMap.get("msg_type").toString(),
-    "original_event_id", eventMap.get("original_event_id").toString(),
-    "schema_version", Constants.SCHEMA_VERSION,
-    "step_up_decision", eventMap.get("step_up_decision").toString(),
-    "step_up_destination", eventMap.get("step_up_destination").toString(),
-    "tenant_id", Collections.singletonList(Constants.TENANT_ID)
-);
+Map<String, Object> digitalMap = new HashMap<>();
+digitalMap.put("digital_session_id", eventMap.get("digital_session_id").toString());
+
+Map<String, Object> requestBody = new HashMap<>();
+requestBody.put("creation_date", Instant.now().toString());
+requestBody.put("digital", digitalMap);
+requestBody.put("event_id", eventMap.get("event_id").toString());
+requestBody.put("event_timestamp", eventMap.get("event_timestamp").toString());
+requestBody.put("event_type", Constants.DEFAULT_EVENT_TYPE);
+requestBody.put("msg_type", eventMap.get("msg_type").toString());
+requestBody.put("original_event_id", eventMap.get("original_event_id").toString());
+requestBody.put("schema_version", Constants.SCHEMA_VERSION);
+requestBody.put("step_up_decision", eventMap.get("step_up_decision").toString());
+requestBody.put("step_up_destination", eventMap.get("step_up_destination").toString());
+requestBody.put("tenant_id", Collections.singletonList(Constants.TENANT_ID));
