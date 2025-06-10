@@ -1,15 +1,44 @@
-Map<String, Object> digitalMap = new HashMap<>();
-digitalMap.put("digital_session_id", eventMap.get("digital_session_id").toString());
 
-Map<String, Object> requestBody = new HashMap<>();
-requestBody.put("creation_date", Instant.now().toString());
-requestBody.put("digital", digitalMap);
-requestBody.put("event_id", eventMap.get("event_id").toString());
-requestBody.put("event_timestamp", eventMap.get("event_timestamp").toString());
-requestBody.put("event_type", Constants.DEFAULT_EVENT_TYPE);
-requestBody.put("msg_type", eventMap.get("msg_type").toString());
-requestBody.put("original_event_id", eventMap.get("original_event_id").toString());
-requestBody.put("schema_version", Constants.SCHEMA_VERSION);
-requestBody.put("step_up_decision", eventMap.get("step_up_decision").toString());
-requestBody.put("step_up_destination", eventMap.get("step_up_destination").toString());
-requestBody.put("tenant_id", Collections.singletonList(Constants.TENANT_ID));
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.stereotype.Component;
+import org.springframework.web.util.ContentCachingRequestWrapper;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+@Component
+public class RequestLoggingFilter implements Filter {
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+
+        // Only proceed if the request is an HttpServletRequest
+        if (!(request instanceof HttpServletRequest)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // Wrap the request to allow repeated reads of the body
+        ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper((HttpServletRequest) request);
+
+        // Proceed with the filter chain
+        chain.doFilter(wrappedRequest, response);
+
+        // Log request body only for application/json
+        String contentType = wrappedRequest.getContentType();
+        if (contentType != null && contentType.contains("application/json")) {
+            byte[] buf = wrappedRequest.getContentAsByteArray();
+
+            if (buf.length > 0) {
+                try {
+                    String body = new String(buf, StandardCharsets.UTF_8);
+                    System.out.println("Raw Request Body: " + body);
+                } catch (Exception e) {
+                    System.err.println("Failed to read request body: " + e.getMessage());
+                }
+            }
+        }
+    }
+}
