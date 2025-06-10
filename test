@@ -1,7 +1,7 @@
 package com.praveen.business.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.praveen.business.model.InputRequest;
+import com.praveen.business.model.IncomingRequest;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -42,8 +42,8 @@ public class RequestLoggingFilter implements Filter {
                 String body = new String(buf, charset);
                 try {
                     log.info("Raw Request Body: {}", body);
-                    InputRequest inputRequest = objectMapper.readValue(body, InputRequest.class);
-                    log.info("Deserialized InputRequest: {}", inputRequest);
+                    IncomingRequest incomingRequest = objectMapper.readValue(body, IncomingRequest.class);
+                    log.info("Deserialized InputRequest: {}", incomingRequest);
                 } catch (Exception e) {
                     log.warn("Failed to read request body", e);
                 }
