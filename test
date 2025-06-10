@@ -1,49 +1,49 @@
-package com.praveen.business.filter;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.praveen.business.model.InputRequest;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 @Component
+@Slf4j
 public class RequestLoggingFilter implements Filter {
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        // Only proceed if the request is an HttpServletRequest
         if (!(request instanceof HttpServletRequest)) {
             chain.doFilter(request, response);
             return;
         }
 
-        // Wrap the request to allow repeated reads of the body
         ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper((HttpServletRequest) request);
-
-        // Proceed with the filter chain
         chain.doFilter(wrappedRequest, response);
 
-        // Log request body only for application/json
         String contentType = wrappedRequest.getContentType();
         if (contentType != null && contentType.contains("application/json")) {
             byte[] buf = wrappedRequest.getContentAsByteArray();
 
             if (buf.length > 0) {
+                Charset charset = Optional.of(wrappedRequest.getCharacterEncoding())
+                        .map(Charset::forName)
+                        .orElse(StandardCharsets.UTF_8);
+                String body = new String(buf, charset);
                 try {
-                    String body = new String(buf, StandardCharsets.UTF_8);
-                    System.out.println("Raw Request Body: " + body);
-                    // Deserialize InputRequest
-                    ObjectMapper objectMapper = new ObjectMapper();
+                    log.info("Raw Request Body: {}", body);
                     InputRequest inputRequest = objectMapper.readValue(body, InputRequest.class);
-                    System.out.println("Deserialized InputRequest : " + inputRequest);
+                    log.info("Deserialized InputRequest: {}", inputRequest);
                 } catch (Exception e) {
-                    System.err.println("Failed to read request body: " + e.getMessage());
+                    log.warn("Failed to read request body", e);
                 }
             }
         }
