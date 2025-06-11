@@ -1,8 +1,14 @@
+/**
+ * Checks if the provided string corresponds to any {@code MsgType} enum value.
+ *
+ * @param type the string representation of the message type to check
+ * @return {@code true} if a matching {@code MsgType} exists, {@code false} otherwise
+ */
 public static boolean contains(String type) {
-        for (MsgType msgType : MsgType.values()) {
-            if (msgType.type.equals(type)) {
-                return true;
-            }
+    for (MsgType msgType : MsgType.values()) {
+        if (msgType.type.equals(type)) {
+            return true;
         }
-        return false;
     }
+    return false;
+}
