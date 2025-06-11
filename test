@@ -1,38 +1,7 @@
-public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
-    private final byte[] cachedBody;
-
-    public CachedBodyHttpServletRequest(HttpServletRequest request) throws IOException {
-        super(request);
-        InputStream requestInputStream = request.getInputStream();
-        this.cachedBody = requestInputStream.readAllBytes(); // Java 9+; use Apache IOUtils for Java 8
-    }
-
-    @Override
-    public ServletInputStream getInputStream() {
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(this.cachedBody);
-        return new ServletInputStream() {
-            @Override public int read() {
-                return byteArrayInputStream.read();
-            }
-
-            @Override public boolean isFinished() {
-                return byteArrayInputStream.available() == 0;
-            }
-
-            @Override public boolean isReady() {
-                return true;
-            }
-
-            @Override public void setReadListener(ReadListener readListener) { }
-        };
-    }
-
-    @Override
-    public BufferedReader getReader() {
-        return new BufferedReader(new InputStreamReader(getInputStream()));
-    }
-
-    public byte[] getCachedBody() {
-        return this.cachedBody;
-    }
-}
+/**
+ * A custom HttpServletRequestWrapper that reads and caches the request body
+ * so it can be read multiple times.
+ * <p>
+ * This is useful when the request body needs to be logged or processed
+ * before it is consumed by the filter chain or controller.
+ */
