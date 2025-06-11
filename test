@@ -1,5 +1,8 @@
-/**
- * A filter that:
- * - Reads and logs the request body before passing the request along
- * - Validates a custom client secret from headers
- */
+public static boolean contains(String type) {
+        for (MsgType msgType : MsgType.values()) {
+            if (msgType.type.equals(type)) {
+                return true;
+            }
+        }
+        return false;
+    }
