@@ -1,17 +1,19 @@
 package com.praveen.business.model;
 
-
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
-
-import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @ToString
-public class Message {
-    private String att1;
-    private String att2;
-    private List<Property> properties;
+public class Incoming {
+    @JsonProperty("source-type")
+    private String sourceType;
+
+    @JsonProperty("source-address")
+    private String sourceAddress;
+
+    private Message message;
 }
