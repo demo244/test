@@ -1,20 +1,17 @@
 package com.praveen.business.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.*;
+
+import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @ToString
-public class Property {
-    @JsonProperty("attribute-name")
-    private String attributeName;
-
-    @JsonProperty("json-type")
-    private String jsonType;
-
-    @JsonProperty("json-format")
-    private String jsonFormat;
+public class Message {
+    private String att1;
+    private String att2;
+    private List<Property> properties;
 }
