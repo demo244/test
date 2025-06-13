@@ -2,12 +2,15 @@ package com.praveen.business.model;
 
 import lombok.*;
 
+import java.util.List;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @ToString
-public class Worker {
-    private Incoming incoming;
-    private Outgoing outgoing;
+public class WorkerConfig {
+    private List<Worker> worker;
+
 }
+
