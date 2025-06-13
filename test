@@ -1,47 +1,20 @@
-{
-  "worker": [
-    {
-      "incoming": {
-        "source-type": "kafka-topic",
-        "source-address": "fo-event-history",
-        "message": {
-          "att1": "",
-          "att2": "",
-          "properties": [
-            {
-              "attribute-name": "digital_session_id",
-              "json-type": "string",
-              "json-format": "date"
-            },
-            {
-              "attribute-name": "msg_type",
-              "json-type": "string",
-              "json-format": "string"
-            }
-          ]
-        }
-      },
-      "outgoing": {
-        "destination-type": "rest-endpoint",
-        "destination-aaa": "aric-saas-cloud",
-        "destination-route": "/v1/aric/event",
-        "message": {
-          "att1": "",
-          "att2": "",
-          "properties": [
-            {
-              "attribute-name": "digital_session_id",
-              "json-type": "string",
-              "json-format": "date"
-            },
-            {
-              "attribute-name": "msg_type",
-              "json-type": "",
-              "json-format": ""
-            }
-          ]
-        }
-      }
-    }
-  ]
+package com.praveen.business.model;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@ToString
+public class Property {
+    @JsonProperty("attribute-name")
+    private String attributeName;
+
+    @JsonProperty("json-type")
+    private String jsonType;
+
+    @JsonProperty("json-format")
+    private String jsonFormat;
 }
