@@ -1,16 +1,24 @@
-package com.praveen.business.model;
+package com.praveen.business.config;
 
-import lombok.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.praveen.business.model.WorkerConfig;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.stereotype.Component;
 
-import java.util.List;
+import java.io.InputStream;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@ToString
-public class WorkerConfig {
-    private List<Worker> worker;
+@Component
+public class WorkerConfigLoader implements ApplicationRunner {
 
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream("template.json");
+
+        WorkerConfig config = mapper.readValue(inputStream, WorkerConfig.class);
+
+      
+        System.out.println("Loaded config: " + config);
+    }
 }
-
