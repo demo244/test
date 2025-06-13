@@ -1,7 +1,5 @@
 package com.praveen.business.model;
 
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @AllArgsConstructor
@@ -9,15 +7,7 @@ import lombok.*;
 @Getter
 @Setter
 @ToString
-public class Outgoing {
-    @JsonProperty("destination-type")
-    private String destinationType;
-
-    @JsonProperty("destination-aaa")
-    private String destinationAaa;
-
-    @JsonProperty("destination-route")
-    private String destinationRoute;
-
-    private Message message;
+public class Worker {
+    private Incoming incoming;
+    private Outgoing outgoing;
 }
