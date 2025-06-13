@@ -1,17 +1,47 @@
-/**
- * Checks if the provided string corresponds to any {@code MsgType} enum value.
- *
- * @param type the string representation of the message type to check
- * @return {@code true} if a matching {@code MsgType} exists, {@code false} otherwise
- */
-public static boolean contains(String type) {
-    if (type == null) {
-        return false;
-    }
-    for (MsgType msgType : MsgType.values()) {
-        if (msgType.type.equals(type)) {
-            return true;
+{
+  "worker": [
+    {
+      "incoming": {
+        "source-type": "kafka-topic",
+        "source-address": "fo-event-history",
+        "message": {
+          "att1": "",
+          "att2": "",
+          "properties": [
+            {
+              "attribute-name": "digital_session_id",
+              "json-type": "string",
+              "json-format": "date"
+            },
+            {
+              "attribute-name": "msg_type",
+              "json-type": "string",
+              "json-format": "string"
+            }
+          ]
         }
+      },
+      "outgoing": {
+        "destination-type": "rest-endpoint",
+        "destination-aaa": "aric-saas-cloud",
+        "destination-route": "/v1/aric/event",
+        "message": {
+          "att1": "",
+          "att2": "",
+          "properties": [
+            {
+              "attribute-name": "digital_session_id",
+              "json-type": "string",
+              "json-format": "date"
+            },
+            {
+              "attribute-name": "msg_type",
+              "json-type": "",
+              "json-format": ""
+            }
+          ]
+        }
+      }
     }
-    return false;
+  ]
 }
