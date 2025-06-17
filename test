@@ -1,0 +1,218 @@
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.util.Optional;
+
+/**
+ * Utility class for handling and parsing HTTP requests.
+ */
+@Component
+public class RequestUtils {
+
+    private final ObjectMapper objectMapper;
+
+    /**
+     * Constructs a new {@code RequestUtils} with the provided {@link ObjectMapper}.
+     *
+     * @param objectMapper the Jackson object mapper used for JSON deserialization
+     */
+    public RequestUtils(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Wraps the given {@link HttpServletRequest} in a {@link CachedBodyHttpServletRequest} to allow
+     * multiple reads of the request body.
+     *
+     * @param request the original HTTP request
+     * @return a {@code CachedBodyHttpServletRequest} instance
+     * @throws IOException if an I/O error occurs while reading the body
+     */
+    public CachedBodyHttpServletRequest wrapRequest(HttpServletRequest request) throws IOException {
+        if (request instanceof CachedBodyHttpServletRequest) {
+            return (CachedBodyHttpServletRequest) request;
+        }
+        return new CachedBodyHttpServletRequest(request);
+    }
+
+    /**
+     * Attempts to parse the body of the wrapped request into an {@link IncomingRequest} object.
+     *
+     * @param request the wrapped HTTP request with cached body
+     * @return an {@code Optional} containing the parsed {@code IncomingRequest}, or empty if parsing fails
+     */
+    public Optional<IncomingRequest> parseIncomingRequest(CachedBodyHttpServletRequest request) {
+        try {
+            byte[] body = request.getCachedBody();
+            if (body.length == 0) return Optional.empty();
+            return Optional.of(objectMapper.readValue(body, IncomingRequest.class));
+        } catch (Exception ex) {
+            return Optional.empty();
+        }
+    }
+}
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Optional;
+
+/**
+ * Filter that validates the presence and correctness of the client secret in HTTP headers.
+ * Logs relevant request information and halts the request chain if validation fails.
+ */
+@Component
+@Order(1)
+public class ClientSecretValidationFilter extends OncePerRequestFilter {
+
+    @Value("${client.secret}")
+    private String clientSecret;
+
+    private final RequestUtils requestUtils;
+    private final JourneyLog journeyLog;
+
+    /**
+     * Constructs a new {@code ClientSecretValidationFilter}.
+     *
+     * @param requestUtils utility class for working with HTTP requests
+     * @param journeyLog   logging component for request-related events
+     */
+    public ClientSecretValidationFilter(RequestUtils requestUtils, JourneyLog journeyLog) {
+        this.requestUtils = requestUtils;
+        this.journeyLog = journeyLog;
+    }
+
+    /**
+     * Validates the client secret and logs the message type if present.
+     * Rejects the request with a 401 status if the client secret is invalid.
+     *
+     * @param request     the HTTP request
+     * @param response    the HTTP response
+     * @param filterChain the filter chain
+     * @throws ServletException if an error occurs during filtering
+     * @throws IOException      if an I/O error occurs
+     */
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+
+        CachedBodyHttpServletRequest wrappedRequest = requestUtils.wrapRequest(request);
+
+        String msgType = "unknown";
+
+        if ("POST".equalsIgnoreCase(request.getMethod()) &&
+            wrappedRequest.getContentType() != null &&
+            wrappedRequest.getContentType().contains("application/json")) {
+
+            Optional<IncomingRequest> incomingOpt = requestUtils.parseIncomingRequest(wrappedRequest);
+
+            if (incomingOpt.isPresent()) {
+                msgType = incomingOpt.get().getMsgType();
+                journeyLog.logEvent("request-handler-event-received",
+                        "Guardian received an event from source system: " + msgType);
+            }
+        }
+
+        String reqClientSecret = wrappedRequest.getHeader("X-Nfcu-Clientsecret");
+        boolean isValid = reqClientSecret != null && reqClientSecret.equals(clientSecret);
+
+        if (!isValid) {
+            journeyLog.logEvent("request-handler-unauthorized",
+                    "Guardian did not accept request due to invalid client secret. MsgType: " + msgType);
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid Client Secret");
+            return;
+        }
+
+        filterChain.doFilter(wrappedRequest, response);
+    }
+}
+
+
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Optional;
+
+/**
+ * Filter that validates the presence and correctness of the {@code msgType} field in the request body.
+ * Ensures the body is a valid JSON and {@code msgType} is present and non-blank.
+ */
+@Component
+@Order(2)
+public class MessageTypeValidationFilter extends OncePerRequestFilter {
+
+    private final RequestUtils requestUtils;
+    private final JourneyLog journeyLog;
+
+    /**
+     * Constructs a new {@code MessageTypeValidationFilter}.
+     *
+     * @param requestUtils utility class for working with HTTP requests
+     * @param journeyLog   logging component for request-related events
+     */
+    public MessageTypeValidationFilter(RequestUtils requestUtils, JourneyLog journeyLog) {
+        this.requestUtils = requestUtils;
+        this.journeyLog = journeyLog;
+    }
+
+    /**
+     * Validates that the request contains a non-empty {@code msgType} field in its JSON body.
+     * Rejects the request with a 400 status if validation fails.
+     *
+     * @param request     the HTTP request
+     * @param response    the HTTP response
+     * @param filterChain the filter chain
+     * @throws ServletException if an error occurs during filtering
+     * @throws IOException      if an I/O error occurs
+     */
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+
+        CachedBodyHttpServletRequest wrappedRequest = requestUtils.wrapRequest(request);
+
+        if ("POST".equalsIgnoreCase(request.getMethod()) &&
+            wrappedRequest.getContentType() != null &&
+            wrappedRequest.getContentType().contains("application/json")) {
+
+            Optional<IncomingRequest> incomingOpt = requestUtils.parseIncomingRequest(wrappedRequest);
+
+            if (incomingOpt.isEmpty()) {
+                journeyLog.logEvent("request-handler-bad-request",
+                        "Guardian did not accept request due to invalid JSON body.");
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid JSON body");
+                return;
+            }
+
+            String msgType = incomingOpt.get().getMsgType();
+            if (msgType == null || msgType.isBlank()) {
+                journeyLog.logEvent("request-handler-mandatory-field-check-failed",
+                        "Guardian did not accept request due to missing msgType field.");
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing msgType field");
+                return;
+            }
+        }
+
+        filterChain.doFilter(wrappedRequest, response);
+    }
+}
+
+
+
