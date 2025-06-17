@@ -12,7 +12,26 @@ public class OmnisysPendingConfirmationWriter {
     private static final int RECORD_LENGTH = 150;
 
     public static void main(String[] args) {
-      
+        OmnisysPendingConfirmation data = OmnisysPendingConfirmation.builder()
+                .storeNumber(12345)
+                .rxNumber(123456789L)
+                .refillNumber(5)
+                .dateOfService(20250616)
+                .pharmacyNpi("1234567890")
+                .transactionType('A')
+                .soldDate(20250615)
+                .ndcNumber(12345678901L)
+                .authReferenceNumber("Authorization123456")
+                .cardholderId("CardHolder123456")
+                .patientFirstName("John")
+                .patientLastName("Doe")
+                .patientMiddleInitial('M')
+                .respTotalAmtPaid(12345L)
+                .patientPayAmt(678L)
+                .epmsSequenceNumber("99999")
+                .rfPartialFillCode(1)
+                .activityDate(20250615)
+                .build();
 
         try (FileOutputStream fos = new FileOutputStream("omnisys_pending_confirmation.dat")) {
             fos.write(createRecord(data));
@@ -28,12 +47,12 @@ public class OmnisysPendingConfirmationWriter {
 
         pos = writeComp3(record, pos, d.getStoreNumber(), 5);
         pos = writeComp3(record, pos, d.getRxNumber(), 9);
-        pos = writeText(record, pos, d.getRefillNumber(), 2);
+        pos = writeComp3(record, pos, d.getRefillNumber(), 1);
         pos = writeComp3(record, pos, d.getDateOfService(), 8);
         pos = writeText(record, pos, d.getPharmacyNpi(), 10);
         pos = writeChar(record, pos, d.getTransactionType());
         pos = writeComp3(record, pos, d.getSoldDate(), 8);
-        pos = writeText(record, pos, d.getNdcNumber(), 11);
+        pos = writeComp3(record, pos, d.getNdcNumber(), 11);
         pos = writeText(record, pos, d.getAuthReferenceNumber(), 20);
         pos = writeText(record, pos, d.getCardholderId(), 15);
         pos = writeText(record, pos, d.getPatientFirstName(), 12);
@@ -41,8 +60,8 @@ public class OmnisysPendingConfirmationWriter {
         pos = writeChar(record, pos, d.getPatientMiddleInitial());
         pos = writeComp3(record, pos, d.getRespTotalAmtPaid(), 9);
         pos = writeComp3(record, pos, d.getPatientPayAmt(), 9);
-        pos = writeComp3(record, pos, d.getEpmsSequenceNumber(), 7);
-        pos = writeChar(record, pos, d.getRfPartialFillCode());
+        pos = writeText(record, pos, padLeft(d.getEpmsSequenceNumber(), 5), 5);
+        pos = writeComp3(record, pos, d.getRfPartialFillCode(), 7);
         pos = writeComp3(record, pos, d.getActivityDate(), 8);
         writeText(record, pos, "", 25); // FILLER
 
@@ -67,7 +86,7 @@ public class OmnisysPendingConfirmationWriter {
     }
 
     static byte[] packComp3(long value, int digits) {
-        String numStr = String.format("%0" + digits + "d", Math.abs(value)) + "C";
+        String numStr = String.format("%0" + digits + "d", Math.abs(value)) + "C"; // 'C' = positive sign
         byte[] packed = new byte[(numStr.length() + 1) / 2];
         for (int i = 0; i < numStr.length(); i += 2) {
             int hi = Character.digit(numStr.charAt(i), 16);
@@ -83,5 +102,10 @@ public class OmnisysPendingConfirmationWriter {
         Arrays.fill(bytes, (byte) ' ');
         System.arraycopy(strBytes, 0, bytes, 0, Math.min(length, strBytes.length));
         return bytes;
+    }
+
+    static String padLeft(String input, int length) {
+        if (input == null) return "0".repeat(length);
+        return String.format("%" + length + "s", input).replace(' ', '0');
     }
 }
