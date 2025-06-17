@@ -1,0 +1,87 @@
+package com.praveen;
+
+import com.praveen.model.OmnisysPendingConfirmation;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+
+public class OmnisysPendingConfirmationWriter {
+
+    private static final int RECORD_LENGTH = 150;
+
+    public static void main(String[] args) {
+      
+
+        try (FileOutputStream fos = new FileOutputStream("omnisys_pending_confirmation.dat")) {
+            fos.write(createRecord(data));
+            System.out.println("File written: omnisys_pending_confirmation.dat");
+        } catch (IOException e) {
+            System.err.println("File write error: " + e.getMessage());
+        }
+    }
+
+    static byte[] createRecord(OmnisysPendingConfirmation d) {
+        byte[] record = new byte[RECORD_LENGTH];
+        int pos = 0;
+
+        pos = writeComp3(record, pos, d.getStoreNumber(), 5);
+        pos = writeComp3(record, pos, d.getRxNumber(), 9);
+        pos = writeText(record, pos, d.getRefillNumber(), 2);
+        pos = writeComp3(record, pos, d.getDateOfService(), 8);
+        pos = writeText(record, pos, d.getPharmacyNpi(), 10);
+        pos = writeChar(record, pos, d.getTransactionType());
+        pos = writeComp3(record, pos, d.getSoldDate(), 8);
+        pos = writeText(record, pos, d.getNdcNumber(), 11);
+        pos = writeText(record, pos, d.getAuthReferenceNumber(), 20);
+        pos = writeText(record, pos, d.getCardholderId(), 15);
+        pos = writeText(record, pos, d.getPatientFirstName(), 12);
+        pos = writeText(record, pos, d.getPatientLastName(), 15);
+        pos = writeChar(record, pos, d.getPatientMiddleInitial());
+        pos = writeComp3(record, pos, d.getRespTotalAmtPaid(), 9);
+        pos = writeComp3(record, pos, d.getPatientPayAmt(), 9);
+        pos = writeComp3(record, pos, d.getEpmsSequenceNumber(), 7);
+        pos = writeChar(record, pos, d.getRfPartialFillCode());
+        pos = writeComp3(record, pos, d.getActivityDate(), 8);
+        writeText(record, pos, "", 25); // FILLER
+
+        return record;
+    }
+
+    static int writeComp3(byte[] target, int pos, long value, int digits) {
+        byte[] packed = packComp3(value, digits);
+        System.arraycopy(packed, 0, target, pos, packed.length);
+        return pos + packed.length;
+    }
+
+    static int writeText(byte[] target, int pos, String value, int length) {
+        byte[] padded = padRight(value, length);
+        System.arraycopy(padded, 0, target, pos, padded.length);
+        return pos + padded.length;
+    }
+
+    static int writeChar(byte[] target, int pos, char c) {
+        target[pos] = (byte) c;
+        return pos + 1;
+    }
+
+    static byte[] packComp3(long value, int digits) {
+        String numStr = String.format("%0" + digits + "d", Math.abs(value)) + "C";
+        byte[] packed = new byte[(numStr.length() + 1) / 2];
+        for (int i = 0; i < numStr.length(); i += 2) {
+            int hi = Character.digit(numStr.charAt(i), 16);
+            int lo = (i + 1 < numStr.length()) ? Character.digit(numStr.charAt(i + 1), 16) : 0;
+            packed[i / 2] = (byte) ((hi << 4) | lo);
+        }
+        return packed;
+    }
+
+    static byte[] padRight(String input, int length) {
+        byte[] bytes = new byte[length];
+        byte[] strBytes = input.getBytes(StandardCharsets.US_ASCII);
+        Arrays.fill(bytes, (byte) ' ');
+        System.arraycopy(strBytes, 0, bytes, 0, Math.min(length, strBytes.length));
+        return bytes;
+    }
+}
