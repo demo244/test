@@ -1,6 +1,84 @@
-private String remittSeqNbr;
-    private String remittPlbSeqNbr;
-    private String plbProvId;
-    private String plbCd;
-    private String plbRefrNbrId;
-    private String plbAmt;
+@Configuration
+public class ClaimRecordReaderWriterConfig {
+
+    @Value("${output.dir}")
+    private String outputDir;
+
+    @Value("${file.prefix:CLAIM_INFO_}")
+    private String filePrefix;
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Bean
+    public JdbcCursorItemReader<ClaimRecord> claimInfoReader() {
+        JdbcCursorItemReader<ClaimRecord> reader = new JdbcCursorItemReader<>();
+        reader.setDataSource(dataSource);
+        reader.setSql("SELECT * FROM claim_info");
+        reader.setRowMapper((rs, rowNum) -> ClaimRecord.builder()
+                .remitSeqNbr(rs.getString("remit_seq_nbr"))
+                .remitClmSeqNbr(rs.getString("remit_clm_seq_nbr"))
+                .svcProvId(rs.getString("svc_prov_id"))
+                .svcProvClmCnt(rs.getString("svc_prov_clm_cnt"))
+                .svcProvDolBilledAmt(rs.getString("svc_prov_dol_billed_amt"))
+                .scriptSvcRefrNbrId(rs.getString("script_svc_refr_nbr_id"))
+                .clmStatCd(rs.getString("clm_stat_cd"))
+                .totClmChrgAmt(rs.getString("tot_clm_chrg_amt"))
+                .clmPymtAmt(rs.getString("clm_pymt_amt"))
+                .clmFilingCd(rs.getString("clm_filing_cd"))
+                .origPayerClmContNbrId(rs.getString("orig_payer_clm_cont_nbr_id"))
+                .nameId(rs.getString("name_id"))
+                .moaRmbrsRateAmt(rs.getString("moa_rmbrs_rate_amt"))
+                .qualCd(rs.getString("qual_cd"))
+                .otherClmRelatedId(rs.getString("other_clm_related_id"))
+                .dosDt(rs.getString("dos_dt"))
+                .adjudicationDt(rs.getString("adjudication_dt"))
+                .ndc(rs.getString("ndc"))
+                .build());
+        return reader;
+    }
+
+    @Bean
+    public FlatFileItemWriter<ClaimRecord> claimInfoWriter() {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMddyyyy_HHmmss"));
+        String filename = filePrefix + timestamp + ".txt";
+        String fullPath = Paths.get(outputDir, filename).toString();
+
+        FlatFileItemWriter<ClaimRecord> writer = new FlatFileItemWriter<>();
+        writer.setResource(new FileSystemResource(fullPath));
+
+        AtomicInteger counter = new AtomicInteger(0);
+
+        writer.setLineAggregator(item -> {
+            counter.incrementAndGet();
+            return String.join("|",
+                    item.getRemitSeqNbr(),
+                    item.getRemitClmSeqNbr(),
+                    item.getSvcProvId(),
+                    item.getSvcProvClmCnt(),
+                    item.getSvcProvDolBilledAmt(),
+                    item.getScriptSvcRefrNbrId(),
+                    item.getClmStatCd(),
+                    item.getTotClmChrgAmt(),
+                    item.getClmPymtAmt(),
+                    item.getClmFilingCd(),
+                    item.getOrigPayerClmContNbrId(),
+                    item.getNameId(),
+                    item.getMoaRmbrsRateAmt(),
+                    item.getQualCd(),
+                    item.getOtherClmRelatedId(),
+                    item.getDosDt(),
+                    item.getAdjudicationDt(),
+                    item.getNdc()
+            ) + "|";
+        });
+
+        writer.setHeaderCallback(writer1 -> writer1.write(
+                "REMIT_SEQ_NBR|REMIT_CLM_SEQ_NBR|SVC_PROV_ID|SVC_PROV_CLM_CNT|SVC_PROV_DOL_BILLED_AMT|SCRIPT_SVC_REFR_NBR_ID|CLM_STAT_CD|TOT_CLM_CHRG_AMT|CLM_PYMT_AMT|CLM_FILING_CD|ORIG_PAYER_CLM_CONT_NBR_ID|NAME_ID|MOA_RMBRS_RATE_AMT|QUAL_CD|OTHER_CLM_RELATED_ID|DOS_DT|ADJUDICATION_DT|NDC|"
+        ));
+
+        writer.setFooterCallback(writer1 -> writer1.write("T|" + counter.get()));
+
+        return writer;
+    }
+}
