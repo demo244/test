@@ -11,3 +11,8 @@
     private String origPayerClmContNbrId;
     private String nameId;
     private String moaRmbrsRateAmt;
+    private String qualCd;
+    private String otherClmRelatedId;
+    private String dosDt;
+    private String adjudicationDt;
+    private String ndc;
