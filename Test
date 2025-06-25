@@ -1,50 +1,38 @@
 @Configuration
-public class HeaderRecordReaderWriterConfig {
+public class PlbRecordReaderWriterConfig {
 
     @Value("${output.dir}")
     private String outputDir;
 
-    @Value("${file.prefix:HEADER_INFO_}")
+    @Value("${file.prefix:PLB_INFO_}")
     private String filePrefix;
 
     @Autowired
     private DataSource dataSource;
 
     @Bean
-    public JdbcCursorItemReader<HeaderRecord> headerRecordReader() {
-        JdbcCursorItemReader<HeaderRecord> reader = new JdbcCursorItemReader<>();
+    public JdbcCursorItemReader<PlbRecord> plbRecordReader() {
+        JdbcCursorItemReader<PlbRecord> reader = new JdbcCursorItemReader<>();
         reader.setDataSource(dataSource);
-        reader.setSql("SELECT * FROM header_info");
-        reader.setRowMapper((rs, rowNum) -> HeaderRecord.builder()
+        reader.setSql("SELECT * FROM plb_info");
+        reader.setRowMapper((rs, rowNum) -> PlbRecord.builder()
                 .remitSeqNbr(rs.getString("remit_seq_nbr"))
-                .bchNbrId(rs.getString("bch_nbr_id"))
-                .checkEftAmt(rs.getString("check_eft_amt"))
-                .crdtDbtInd(rs.getString("crdt_dbt_ind"))
-                .pymtMethodCd(rs.getString("pymt_method_cd"))
-                .pymtFormatId(rs.getString("pymt_format_id"))
-                .idNbrCd(rs.getString("id_nbr_cd"))
-                .origSenderBankAcctNbrId(rs.getString("orig_sender_bank_acct_nbr_id"))
-                .originatingCompanyId(rs.getString("originating_company_id"))
-                .bankRoutingId(rs.getString("bank_routing_id"))
-                .receiverBankAcctNbrId(rs.getString("receiver_bank_acct_nbr_id"))
-                .checkIssueEftDt(rs.getString("check_issue_eft_dt"))
-                .origCheckEftTraceNbrId(rs.getString("orig_check_eft_trace_nbr_id"))
-                .origPayerEinTinCd(rs.getString("orig_payer_ein_tin_cd"))
-                .payCyclEndDt(rs.getString("pay_cycl_end_dt"))
-                .payerName(rs.getString("payer_name"))
-                .addlPayerId(rs.getString("addl_payer_id"))
-                .qualCd(rs.getString("qual_cd"))
+                .remitPlbSeqNbr(rs.getString("remit_plb_seq_nbr"))
+                .plbProvId(rs.getString("plb_prov_id"))
+                .plbCd(rs.getString("plb_cd"))
+                .plbRefrNbrId(rs.getString("plb_refr_nbr_id"))
+                .plbAmt(rs.getString("plb_amt"))
                 .build());
         return reader;
     }
 
     @Bean
-    public FlatFileItemWriter<HeaderRecord> headerRecordWriter() {
+    public FlatFileItemWriter<PlbRecord> plbRecordWriter() {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMddyyyy_HHmmss"));
         String filename = filePrefix + timestamp + ".txt";
         String fullPath = Paths.get(outputDir, filename).toString();
 
-        FlatFileItemWriter<HeaderRecord> writer = new FlatFileItemWriter<>();
+        FlatFileItemWriter<PlbRecord> writer = new FlatFileItemWriter<>();
         writer.setResource(new FileSystemResource(fullPath));
 
         AtomicInteger counter = new AtomicInteger(0);
@@ -53,28 +41,16 @@ public class HeaderRecordReaderWriterConfig {
             counter.incrementAndGet();
             return String.join("|",
                     item.getRemitSeqNbr(),
-                    item.getBchNbrId(),
-                    item.getCheckEftAmt(),
-                    item.getCrdtDbtInd(),
-                    item.getPymtMethodCd(),
-                    item.getPymtFormatId(),
-                    item.getIdNbrCd(),
-                    item.getOrigSenderBankAcctNbrId(),
-                    item.getOriginatingCompanyId(),
-                    item.getBankRoutingId(),
-                    item.getReceiverBankAcctNbrId(),
-                    item.getCheckIssueEftDt(),
-                    item.getOrigCheckEftTraceNbrId(),
-                    item.getOrigPayerEinTinCd(),
-                    item.getPayCyclEndDt(),
-                    item.getPayerName(),
-                    item.getAddlPayerId(),
-                    item.getQualCd()
+                    item.getRemitPlbSeqNbr(),
+                    item.getPlbProvId(),
+                    item.getPlbCd(),
+                    item.getPlbRefrNbrId(),
+                    item.getPlbAmt()
             ) + "|";
         });
 
         writer.setHeaderCallback(writer1 -> writer1.write(
-                "REMIT_SEQ_NBR|BCH_NBR_ID|CHECK_EFT_AMT|CRDT_DBT_IND|PYMT_METHOD_CD|PYMT_FORMAT_ID|ID_NBR_CD|ORIG_SENDER_BANK_ACCT_NBR_ID|ORIGINATING_COMPANY_ID|BANK_ROUTING_ID|RECEIVER_BANK_ACCT_NBR_ID|CHECK_ISSUE_EFT_DT|ORIG_CHECK_EFT_TRACE_NBR_ID|ORIG_PAYER_EIN_TIN_CD|PAY_CYCL_END_DT|PAYER_NAME|ADDL_PAYER_ID|QUAL_CD|"
+                "REMIT_SEQ_NBR|REMIT_PLB_SEQ_NBR|PLB_PROV_ID|PLB_CD|PLB_REFR_NBR_ID|PLB_AMT|"
         ));
 
         writer.setFooterCallback(writer1 -> writer1.write("T|" + counter.get()));
