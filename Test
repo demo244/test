@@ -1,60 +1,28 @@
-@Configuration
-public class PlbRecordReaderWriterConfig {
+import org.springframework.batch.item.ItemReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    @Value("${output.dir}")
-    private String outputDir;
+public class TimedItemReader<T> implements ItemReader<T> {
 
-    @Value("${file.prefix:PLB_INFO_}")
-    private String filePrefix;
+    private final ItemReader<T> delegate;
+    private boolean logged = false;
+    private static final Logger logger = LoggerFactory.getLogger(TimedItemReader.class);
 
-    @Autowired
-    private DataSource dataSource;
-
-    @Bean
-    public JdbcCursorItemReader<PlbRecord> plbRecordReader() {
-        JdbcCursorItemReader<PlbRecord> reader = new JdbcCursorItemReader<>();
-        reader.setDataSource(dataSource);
-        reader.setSql("SELECT * FROM plb_info");
-        reader.setRowMapper((rs, rowNum) -> PlbRecord.builder()
-                .remitSeqNbr(rs.getString("remit_seq_nbr"))
-                .remitPlbSeqNbr(rs.getString("remit_plb_seq_nbr"))
-                .plbProvId(rs.getString("plb_prov_id"))
-                .plbCd(rs.getString("plb_cd"))
-                .plbRefrNbrId(rs.getString("plb_refr_nbr_id"))
-                .plbAmt(rs.getString("plb_amt"))
-                .build());
-        return reader;
+    public TimedItemReader(ItemReader<T> delegate) {
+        this.delegate = delegate;
     }
 
-    @Bean
-    public FlatFileItemWriter<PlbRecord> plbRecordWriter() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMddyyyy_HHmmss"));
-        String filename = filePrefix + timestamp + ".txt";
-        String fullPath = Paths.get(outputDir, filename).toString();
+    @Override
+    public T read() throws Exception {
+        long start = System.currentTimeMillis();
+        T item = delegate.read();
+        long end = System.currentTimeMillis();
 
-        FlatFileItemWriter<PlbRecord> writer = new FlatFileItemWriter<>();
-        writer.setResource(new FileSystemResource(fullPath));
+        if (!logged) {
+            logger.info("Initial DB query and cursor opening took {} ms", (end - start));
+            logged = true;
+        }
 
-        AtomicInteger counter = new AtomicInteger(0);
-
-        writer.setLineAggregator(item -> {
-            counter.incrementAndGet();
-            return String.join("|",
-                    item.getRemitSeqNbr(),
-                    item.getRemitPlbSeqNbr(),
-                    item.getPlbProvId(),
-                    item.getPlbCd(),
-                    item.getPlbRefrNbrId(),
-                    item.getPlbAmt()
-            ) + "|";
-        });
-
-        writer.setHeaderCallback(writer1 -> writer1.write(
-                "REMIT_SEQ_NBR|REMIT_PLB_SEQ_NBR|PLB_PROV_ID|PLB_CD|PLB_REFR_NBR_ID|PLB_AMT|"
-        ));
-
-        writer.setFooterCallback(writer1 -> writer1.write("T|" + counter.get()));
-
-        return writer;
+        return item;
     }
 }
