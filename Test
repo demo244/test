@@ -1,28 +1,35 @@
-import org.springframework.batch.item.ItemReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package com.praveen.batch;
 
-public class TimedItemReader<T> implements ItemReader<T> {
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
-    private final ItemReader<T> delegate;
-    private boolean logged = false;
-    private static final Logger logger = LoggerFactory.getLogger(TimedItemReader.class);
+import java.util.Date;
 
-    public TimedItemReader(ItemReader<T> delegate) {
-        this.delegate = delegate;
-    }
+@Component
+public class BatchScheduler {
 
-    @Override
-    public T read() throws Exception {
-        long start = System.currentTimeMillis();
-        T item = delegate.read();
-        long end = System.currentTimeMillis();
+    @Autowired
+    private JobLauncher jobLauncher;
 
-        if (!logged) {
-            logger.info("Initial DB query and cursor opening took {} ms", (end - start));
-            logged = true;
-        }
+    @Autowired
+    @Qualifier("exportAdjustmentInfoJob")
+    private Job exportAdjustmentJob;
 
-        return item;
+    @Scheduled(cron = "0 0 2 * * *")
+    public void runAdjustmentInfoJob() throws Exception {
+        JobParameters params = new JobParametersBuilder()
+                .addDate("runDate", new Date())
+                .toJobParameters();
+
+        System.out.println("Starting exportAdjustmentInfoJob...");
+        JobExecution execution = jobLauncher.run(exportAdjustmentJob, params);
+        System.out.println("Adjustment Job Status: " + execution.getStatus());
     }
 }
