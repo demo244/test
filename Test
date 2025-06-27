@@ -1,7 +1,1 @@
-  try (InputStream is = getClass().getClassLoader().getResourceAsStream("sql/adjustment-info.sql")) {
-        if (is == null) {
-            throw new FileNotFoundException("SQL file not found in resources/sql/adjustment-info.sql");
-        }
-        String sql = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        reader.setSql(sql);
-    }
+String sql = new String(org.apache.commons.io.IOUtils.toByteArray(is), StandardCharsets.UTF_8);
