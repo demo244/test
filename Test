@@ -1,1 +1,28 @@
-String sql = new String(org.apache.commons.io.IOUtils.toByteArray(is), StandardCharsets.UTF_8);
+ @Bean
+    public Tasklet readAdjustmentInfoTasklet() {
+        return new Tasklet() {
+            @Override
+            public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+                long startTime = System.currentTimeMillis();
+
+                AtomicInteger counter = new AtomicInteger(0);
+
+                try (Connection conn = dataSource.getConnection();
+                     PreparedStatement stmt = conn.prepareStatement(
+                             "SELECT remit_seq_nbr, remit_clm_seq_nbr, adjust_cd_seq_nbr, remit_seg_id, remit_cd, adjust_amt FROM adjustments");
+                     ResultSet rs = stmt.executeQuery()) {
+
+                    while (rs.next()) {
+                      
+                        counter.incrementAndGet();
+                    }
+                }
+
+                long elapsed = System.currentTimeMillis() - startTime;
+                System.out.println("Total records read: " + counter.get());
+                System.out.println("Time taken to read from DB (ms): " + elapsed);
+
+                return RepeatStatus.FINISHED;
+            }
+        };
+    }
