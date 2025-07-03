@@ -1,82 +1,17 @@
-package com.praveen.batch.mfp835.adjustmentinfo.config;
+  @Mock
+    private WebClient.Builder webClientBuilder;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
-import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.core.step.tasklet.Tasklet;
-import org.springframework.batch.repeat.RepeatStatus;
-import org.springframework.batch.core.StepContribution;
-import org.springframework.batch.core.scope.context.ChunkContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+    @Mock
+    private WebClient webClient;
 
-import javax.sql.DataSource;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.concurrent.atomic.AtomicInteger;
+    @Mock
+    private WebClient.RequestBodyUriSpec requestBodyUriSpec;
 
-@Configuration
-@EnableBatchProcessing
-@RequiredArgsConstructor
-public class AdjustmentInfoBatchConfig {
+    @Mock
+    private WebClient.RequestBodySpec requestBodySpec;
 
-    private final JobBuilderFactory jobBuilderFactory;
-    private final StepBuilderFactory stepBuilderFactory;
-    private final DataSource dataSource;
+    @Mock
+    private WebClient.RequestHeadersSpec<?> requestHeadersSpec;
 
-    @Bean(name = "readAdjustmentInfoJob")
-    public Job readAdjustmentInfoJob() {
-        return jobBuilderFactory.get("readAdjustmentInfoJob")
-                .start(readAdjustmentInfoStep())
-                .build();
-    }
-
-    @Bean
-    public Step readAdjustmentInfoStep() {
-        return stepBuilderFactory.get("readAdjustmentInfoStep")
-                .tasklet(readAdjustmentInfoTasklet())
-                .allowStartIfComplete(true)
-                .build();
-    }
-
-    @Bean
-    public Tasklet readAdjustmentInfoTasklet() {
-        return (StepContribution contribution, ChunkContext chunkContext) -> {
-            long startTime = System.currentTimeMillis();
-
-            AtomicInteger counter = new AtomicInteger(0);
-            String sql = loadSqlFromFile("sql/adjustment-info.sql");
-
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(sql);
-                 ResultSet rs = stmt.executeQuery()) {
-
-                while (rs.next()) {
-                    counter.incrementAndGet();
-                }
-            }
-
-            long elapsed = System.currentTimeMillis() - startTime;
-            System.out.println("Total records read: " + counter.get());
-            System.out.println("Time taken to read from DB (ms): " + elapsed);
-
-            return RepeatStatus.FINISHED;
-        };
-    }
-
-    private String loadSqlFromFile(String path) throws IOException {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream(path)) {
-            if (is == null) {
-                throw new IOException("SQL file not found in classpath: " + path);
-            }
-            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        }
-    }
-}
+    @Mock
+    private WebClient.ResponseSpec responseSpec;
