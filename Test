@@ -1,1 +1,34 @@
-  when(webClientBuilder.build()).thenReturn(webClient);
+@Test
+    void testPostEventHistoryRequestToAric_successfulResponse() {
+        EventHistory eventHistory = new EventHistory(); 
+        Map<String, Object> inputRequestMap = new HashMap<>();
+        inputRequestMap.put("key", "value");
+
+    
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.contentType(MediaType.APPLICATION_JSON)).thenReturn(requestBodySpec);
+        when(requestBodySpec.bodyValue(any())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.exchangeToMono(any())).thenReturn(Mono.just(new ResponseWrapper<>(HttpStatus.OK, new AricResponse())));
+
+        ResponseWrapper<AricResponse> result = eventService.postEventHistoryRequestToAric(eventHistory, eventId);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+    }
+
+    @Test
+    void testPostEventHistoryRequestToAric_errorResponse() {
+        EventHistory eventHistory = new EventHistory();
+
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.contentType(MediaType.APPLICATION_JSON)).thenReturn(requestBodySpec);
+        when(requestBodySpec.bodyValue(any())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.exchangeToMono(any())).thenReturn(
+            Mono.error(new CustomServiceException(HttpStatus.BAD_REQUEST, "Bad request"))
+        );
+
+        assertThrows(CustomServiceException.class,
+            () -> eventService.postEventHistoryRequestToAric(eventHistory, eventId));
+    }
