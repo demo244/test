@@ -1,5 +1,17 @@
-  when(headersSpec.exchangeToMono(any())).thenAnswer(invocation -> {
-            Function<ClientResponse, Mono<ResponseWrapper<AricResponse>>> func = invocation.getArgument(0);
-            ClientResponse mockResponse = ClientResponse.create(HttpStatus.OK).body("").build();
-            return func.apply(mockResponse);
-        });
+@Mock
+    private WebClient.Builder webClientBuilder;
+
+    @Mock
+    private WebClient webClient;
+
+    @Mock
+    private WebClient.RequestBodyUriSpec requestBodyUriSpec;
+
+    @Mock
+    private WebClient.RequestBodySpec requestBodySpec;
+
+    @Mock
+    private WebClient.RequestHeadersSpec<?> requestHeadersSpec;
+
+    @Mock
+    private WebClient.ResponseSpec responseSpec;
