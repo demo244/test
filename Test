@@ -1,1 +1,10 @@
-  when(webClientBuilder.build()).thenReturn(webClient);
+  when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.contentType(MediaType.APPLICATION_JSON)).thenReturn(requestBodySpec);
+        when(requestBodySpec.bodyValue(any())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.exchangeToMono(any())).thenReturn(Mono.just(new ResponseWrapper<>(HttpStatus.OK, new AricResponse())));
+
+        ResponseWrapper<AricResponse> result = eventService.postEventHistoryRequestToAric(eventHistory, eventId);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
